@@ -1,0 +1,29 @@
+# ─── Node / Frontend ──────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.production
+frontend/deploy.zip
+
+# ─── Java / Backend ───────────────────────────────────────────────────────────
+target/
+*.class
+
+# ─── Terraform ────────────────────────────────────────────────────────────────
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+terraform/lambda/*.zip
+
+# ─── Credenciales y secretos (NUNCA subir) ───────────────────────────────────
+*.pem
+.aws/
+credentials
+
+# ─── Sistema operativo / editor ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

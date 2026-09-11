@@ -1,0 +1,35 @@
+name: Backend - Compilación
+
+# Pipeline 1 de 4: compila y prueba el backend Spring Boot en cada push.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Compilar y ejecutar pruebas
+        run: mvn --batch-mode clean package
+
+      - name: Guardar el jar como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/*.jar

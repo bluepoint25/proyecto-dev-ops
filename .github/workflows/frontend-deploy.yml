@@ -1,0 +1,50 @@
+name: Frontend - Despliegue
+
+# Pipeline 4 de 4: compila y publica el frontend en AWS Amplify (deploy manual por zip).
+# Requiere secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  APP_ID: d33wktji35djz0
+  BRANCH: main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar y compilar
+        run: |
+          npm ci
+          npm run build
+
+      - name: Configurar credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Empaquetar y publicar en Amplify
+        run: |
+          cd dist && zip -r ../deploy.zip . && cd ..
+          DEPLOY=$(aws amplify create-deployment --app-id $APP_ID --branch-name $BRANCH --region $AWS_REGION)
+          JOB_ID=$(echo "$DEPLOY" | python3 -c "import sys,json;print(json.load(sys.stdin)['jobId'])")
+          UPLOAD_URL=$(echo "$DEPLOY" | python3 -c "import sys,json;print(json.load(sys.stdin)['zipUploadUrl'])")
+          curl -s -X PUT -H "Content-Type: application/zip" --upload-file deploy.zip "$UPLOAD_URL"
+          aws amplify start-deployment --app-id $APP_ID --branch-name $BRANCH --job-id $JOB_ID --region $AWS_REGION
