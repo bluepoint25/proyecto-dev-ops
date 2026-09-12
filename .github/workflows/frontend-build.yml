@@ -1,8 +1,14 @@
 name: Frontend - Compilación
 
-# Pipeline 3 de 4: instala dependencias y compila el frontend React en cada push.
+# Pipeline 3 de 4: instala dependencias y compila el frontend React.
+# Se ejecuta en cada push a develop/main y en cada pull request hacia main
+# (integración continua para el frontend).
 on:
   push:
+    branches: [main, develop]
+    paths:
+      - "frontend/**"
+  pull_request:
     branches: [main]
     paths:
       - "frontend/**"

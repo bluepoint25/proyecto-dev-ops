@@ -1,10 +1,59 @@
-# Pedidos360 — DSY1107 Desarrollo Cloud Native I (EP1)
+# Pedidos360 — Repositorio DevOps (Ingeniería DevOps, EP1)
 
 Sistema FullStack seguro desplegado en AWS. Un frontend en **React** se autentica
 contra **AWS Cognito** (IDaaS) mediante **OAuth2 Authorization Code + PKCE**, y
 consume un backend **Spring Boot** protegido por un **API Gateway con JWT
 Authorizer** y autorización por scopes. El backend corre en **ECS Fargate** y
 persiste los datos en **RDS PostgreSQL**.
+
+Este repositorio se usa además como base del **pipeline DevOps** del curso:
+implementa **GitFlow**, integra **GitHub Actions** para CI/CD y documenta las
+convenciones de trabajo colaborativo del equipo.
+
+> Guía completa de buenas prácticas (naming de ramas, commits, merges, revisión):
+> ver [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+---
+
+## Estrategia de ramificación y por qué GitFlow
+
+### Modelos evaluados
+
+| Modelo                | Idea central                                                        | Cuándo conviene                                          |
+|-----------------------|---------------------------------------------------------------------|----------------------------------------------------------|
+| **GitFlow**           | Ramas de larga vida (`main`, `develop`) + ramas de apoyo (`feature/*`, `hotfix/*`, `release/*`). | Versiones planificadas, equipos con revisión formal, releases claras. |
+| **GitHub Flow**       | Solo `main` + ramas de feature con PR y despliegue continuo.        | Entrega continua, apps web con despliegues muy frecuentes. |
+| **Trunk-Based Dev.**  | Todos integran a un único tronco (`main`) con commits muy pequeños y frecuentes, detrás de feature flags. | Equipos con CI muy maduro y alta frecuencia de integración. |
+
+### Elección: GitFlow
+
+Elegimos **GitFlow** para este encargo por estas razones:
+
+1. **Encaja con el objetivo de la evaluación.** El encargo pide explícitamente
+   las ramas `main`, `develop`, `feature/<nombre>` y `hotfix/<nombre>`; esas
+   ramas *son* la estructura de GitFlow.
+2. **Separa lo estable de lo que está en desarrollo.** `main` siempre refleja lo
+   desplegable; `develop` acumula lo que aún se integra. Esto da trazabilidad
+   clara de qué está en producción.
+3. **Modela el trabajo en pareja/equipo.** Cada persona trabaja en su
+   `feature/*` aislada y la integra por Pull Request, lo que habilita revisión
+   de código antes del merge.
+4. **Maneja urgencias de producción.** Las ramas `hotfix/*` nacen de `main`,
+   permitiendo arreglar producción sin arrastrar trabajo a medio hacer de
+   `develop`.
+
+Trunk-based sería preferible con integración continua muy madura y despliegues
+varias veces al día; GitHub Flow es ideal para entrega continua pura. Para el
+contexto del curso (releases planificadas, revisión formal por PR y aprendizaje
+del control de versiones), **GitFlow es el que mejor equilibra control,
+trazabilidad y colaboración.**
+
+### Ramas del repositorio
+
+- `main` — código estable/desplegable. Solo entra por PR.
+- `develop` — integración de features. Solo entra por PR.
+- `feature/<nombre>` — funcionalidades nuevas (nacen de `develop`).
+- `hotfix/<nombre>` — correcciones urgentes (nacen de `main`).
 
 ---
 
@@ -154,14 +203,28 @@ npm run build
 
 ## Pipelines (CI/CD)
 
-Cuatro workflows de GitHub Actions en `.github/workflows/`:
+Workflows de GitHub Actions en `.github/workflows/`:
 
-| Pipeline               | Disparador           | Qué hace                                   |
-|------------------------|----------------------|--------------------------------------------|
-| `frontend-build.yml`   | push a `frontend/**` | `npm install` + `npm run build`            |
-| `frontend-deploy.yml`  | manual               | build + publicar en Amplify                |
-| `backend-build.yml`    | push a `backend/**`  | `mvn clean package` (compila y prueba)     |
-| `backend-deploy.yml`   | manual               | build imagen + push ECR + redeploy ECS     |
+| Pipeline               | Disparador                                   | Qué hace                                   |
+|------------------------|----------------------------------------------|--------------------------------------------|
+| `ci.yml`               | **push a `develop`** y **PR a `main`**       | Compila backend y frontend (quality gate)  |
+| `frontend-build.yml`   | push a `frontend/**`, PR a `main`            | `npm install` + `npm run build`            |
+| `frontend-deploy.yml`  | manual                                       | build + publicar en Amplify                |
+| `backend-build.yml`    | push a `backend/**`, PR a `main`             | `mvn clean package` (compila y prueba)     |
+| `backend-deploy.yml`   | manual                                       | build imagen + push ECR + redeploy ECS     |
+
+### Rol de la acción de CI en CI/CD
+
+`ci.yml` es la **acción de integración continua** exigida por la evaluación. Se
+ejecuta automáticamente en **cada push a `develop`** (valida la integración de
+cada feature) y en **cada pull request hacia `main`** (valida el candidato a
+release antes de que llegue a producción).
+
+Su rol es actuar como **puerta de calidad**: si el backend o el frontend no
+compilan, la acción falla y el Pull Request no debe mergearse. Así, ningún
+cambio roto entra a `develop` ni a `main`. Esta es la fase de **Integración
+Continua (CI)**; los pipelines `*-deploy.yml` cubren la **Entrega/Despliegue
+Continuo (CD)** hacia AWS.
 
 Los pipelines de **despliegue** requieren estos secrets en el repositorio
 (Settings → Secrets and variables → Actions):
