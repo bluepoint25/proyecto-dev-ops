@@ -6,7 +6,7 @@ import {
 } from './auth.js'
 import { getProductos, crearProducto } from './api.js'
 
-// ─── Productos iniciales (3 fijos, como pide la evaluación) ──────────────────
+// ─── Productos iniciales ─────────────────────────────────────────────────────
 const PRODUCTOS_INICIALES = [
   { id: 1, nombre: 'Laptop Pro 15"',   precio: 899990, stock: 10 },
   { id: 2, nombre: 'Mouse Inalámbrico', precio: 24990,  stock: 50 },

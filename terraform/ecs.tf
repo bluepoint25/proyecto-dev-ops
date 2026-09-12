@@ -1,5 +1,4 @@
-# Nota: la VPC por defecto de este lab YA trae la ruta 0.0.0.0/0,
-# por eso NO creamos aws_route (a diferencia de la guía 1.3.9).
+# La VPC por defecto ya trae la ruta 0.0.0.0/0, por eso no creamos aws_route.
 
 # ─── ECR: registro privado de la imagen ───────────────────────────────────────
 resource "aws_ecr_repository" "backend" {
