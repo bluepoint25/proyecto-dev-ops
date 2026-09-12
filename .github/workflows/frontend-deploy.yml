@@ -1,6 +1,6 @@
 name: Frontend - Despliegue
 
-# Pipeline 4 de 4: compila y publica el frontend en AWS Amplify (deploy manual por zip).
+# Compila y publica el frontend en AWS Amplify (deploy manual por zip).
 # Requiere secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN
 on:
   workflow_dispatch:

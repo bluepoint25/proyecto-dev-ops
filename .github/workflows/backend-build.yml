@@ -1,8 +1,7 @@
 name: Backend - Compilación
 
-# Pipeline 1 de 4: compila y prueba el backend Spring Boot.
-# Se ejecuta en cada push a develop/main y en cada pull request hacia main
-# (integración continua: ningún cambio llega a main sin compilar antes).
+# Compila y prueba el backend Spring Boot en cada push a develop/main y en cada
+# pull request hacia main.
 on:
   push:
     branches: [main, develop]
