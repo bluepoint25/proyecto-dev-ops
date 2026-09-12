@@ -6,7 +6,7 @@ variable "db_password" {
   sensitive   = true
 }
 
-# ─── Red por defecto (se reutiliza, como en la guía 1.3.9) ───────────────────
+# ─── Red por defecto (se reutiliza) ──────────────────────────────────────────
 data "aws_vpc" "default" {
   default = true
 }

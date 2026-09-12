@@ -1,17 +1,16 @@
-# Guía de buenas prácticas del repositorio (equipo DevOps)
+# Guía de contribución
 
-Esta guía define las convenciones que el equipo sigue para trabajar sobre el
-microservicio **Pedidos360** de forma colaborativa, trazable y ordenada. Cubre:
-estrategia de ramificación, naming de ramas, mensajes de commit, estructura de
-carpetas, flujos de merge, estrategias de revisión y control de versiones.
+Convenciones para trabajar sobre **Pedidos360** de forma colaborativa, trazable
+y ordenada. Cubre estrategia de ramificación, naming de ramas, mensajes de
+commit, estructura de carpetas, flujos de merge, estrategias de revisión y
+control de versiones.
 
 ---
 
 ## 1. Estrategia de ramificación: GitFlow
 
-El equipo adopta **GitFlow**. Es un modelo con ramas de larga vida (`main` y
-`develop`) más ramas de apoyo de vida corta (`feature/*`, `hotfix/*`,
-`release/*`). Ver la justificación completa en el README.
+El repositorio usa **GitFlow**: ramas de larga vida (`main` y `develop`) más
+ramas de apoyo de vida corta (`feature/*`, `hotfix/*`, `release/*`).
 
 ### Ramas de larga vida
 
@@ -85,14 +84,13 @@ Reglas:
 
 ```
 proyecto/
-├── README.md            documentación principal + justificación GitFlow
-├── CONTRIBUTING.md      esta guía de buenas prácticas
-├── INFORME.md           informe técnico del microservicio
+├── README.md            documentación técnica del proyecto
+├── CONTRIBUTING.md      esta guía de contribución
 ├── .gitignore           exclusiones a nivel raíz
 ├── .github/workflows/   pipelines de GitHub Actions (CI/CD)
 ├── frontend/            aplicación React + Vite
 │   └── src/
-├── backend/             microservicio Spring Boot (Java 21)
+├── backend/             backend Spring Boot (Java 21)
 │   └── src/main/java/…
 └── terraform/           infraestructura como código (IaC)
 ```

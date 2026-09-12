@@ -1,16 +1,7 @@
 name: CI - Integración Continua
 
-# Acción de integración continua exigida por la evaluación (IE3/IE4).
-#
-# Se dispara en dos momentos clave del flujo GitFlow:
-#   - push a la rama develop  -> valida cada integración de una feature
-#   - pull request hacia main -> valida el candidato a release antes del merge
-#
-# Rol dentro de CI/CD: esta acción es la puerta de calidad (quality gate).
-# Ejecuta la validación del repositorio de forma automática, sin intervención
-# manual, de modo que ningún cambio roto llegue a develop ni a main. Es el
-# primer eslabón del pipeline: Integración Continua (CI). Los pipelines de
-# despliegue (frontend-deploy / backend-deploy) representan la Entrega Continua (CD).
+# Integración continua: compila backend y frontend en cada push a develop y en
+# cada pull request hacia main, de modo que ningún cambio roto llegue a esas ramas.
 on:
   push:
     branches: [develop]

@@ -110,8 +110,8 @@ export function estaExpirado(token) {
 }
 
 /** Lee el rol desde los claims del ID Token.
- *  Según la guía 1.3.11: el grupo "editores" tiene permiso de escritura
- *  (productos/write) y el grupo "lectores" solo lectura (productos/read). */
+ *  El grupo "editores" tiene permiso de escritura (productos/write) y el grupo
+ *  "lectores" solo lectura (productos/read). */
 export function getRol() {
   const claims = decodificarJwt(getIdToken())
   // Cognito pone los grupos en "cognito:groups"

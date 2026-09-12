@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ─── Publicar el backend en ECS (guía 1.3.9) ────────────────────────────────
+# ─── Publicar el backend en ECS ──────────────────────────────────────────────
 # Construye la imagen, la sube a ECR y fuerza un nuevo despliegue en ECS.
 # Ejecutar desde la carpeta backend/ con las credenciales AWS activas.
 set -euo pipefail
