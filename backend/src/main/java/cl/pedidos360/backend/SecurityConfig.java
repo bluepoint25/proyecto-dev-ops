@@ -26,8 +26,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsSource()))
             .authorizeHttpRequests(auth -> auth
-                // El health check de ECS no requiere token
-                .requestMatchers("/actuator/health").permitAll()
+                // El health check de ECS y el endpoint de metadatos son públicos
+                .requestMatchers("/actuator/health", "/info").permitAll()
                 // Todo lo demás requiere autenticación (token JWT válido)
                 .anyRequest().authenticated()
             )
