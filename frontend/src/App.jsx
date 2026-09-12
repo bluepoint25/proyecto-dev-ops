@@ -6,6 +6,9 @@ import {
 } from './auth.js'
 import { getProductos, crearProducto } from './api.js'
 
+// Versión de la aplicación (se muestra en el footer para trazabilidad DevOps)
+const APP_VERSION = '1.1.0'
+
 // ─── Productos iniciales (3 fijos, como pide la evaluación) ──────────────────
 const PRODUCTOS_INICIALES = [
   { id: 1, nombre: 'Laptop Pro 15"',   precio: 899990, stock: 10 },
@@ -204,6 +207,11 @@ export default function App() {
           </div>
         </section>
       )}
+
+      {/* ── Footer con la versión de la app ── */}
+      <footer className="app-footer">
+        <span>Pedidos360 · versión {APP_VERSION}</span>
+      </footer>
     </main>
   )
 }
