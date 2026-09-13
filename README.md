@@ -171,3 +171,10 @@ Los pipelines de despliegue requieren los secrets `AWS_ACCESS_KEY_ID`,
 
 Si no se definen las variables de conexión a RDS, el backend usa H2 en memoria
 como fallback, lo que permite levantarlo en local sin base de datos externa.
+
+---
+
+## Contribución
+
+El repositorio sigue **GitFlow** y una convención de commits, ramas y revisión.
+Ver la guía completa en [`CONTRIBUTING.md`](CONTRIBUTING.md).

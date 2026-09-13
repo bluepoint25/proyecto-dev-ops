@@ -7,10 +7,33 @@ control de versiones.
 
 ---
 
-## 1. Estrategia de ramificación: GitFlow
+## 1. Estrategia de ramificación
+
+### Modelos considerados
+
+| Modelo               | Idea central                                                                        | Cuándo conviene                                             |
+|----------------------|-------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| **GitFlow**          | Ramas de larga vida (`main`, `develop`) + ramas de apoyo (`feature/*`, `hotfix/*`, `release/*`). | Versiones planificadas, revisión formal por PR, releases claras. |
+| **GitHub Flow**      | Solo `main` + ramas de feature con PR y despliegue continuo.                        | Entrega continua, apps web con despliegues muy frecuentes.  |
+| **Trunk-Based Dev.** | Todos integran a un único tronco con commits pequeños y frecuentes, tras feature flags. | Equipos con CI muy maduro y alta frecuencia de integración. |
+
+### Elección: GitFlow
 
 El repositorio usa **GitFlow**: ramas de larga vida (`main` y `develop`) más
-ramas de apoyo de vida corta (`feature/*`, `hotfix/*`, `release/*`).
+ramas de apoyo de vida corta (`feature/*`, `hotfix/*`, `release/*`). Se eligió
+porque:
+
+- Separa con claridad lo estable (`main`) de lo que aún se integra (`develop`),
+  dando trazabilidad de qué está en producción.
+- Cada persona trabaja aislada en su `feature/*` y la integra por Pull Request,
+  lo que habilita revisión de código antes del merge.
+- Las ramas `hotfix/*` permiten corregir producción sin arrastrar trabajo a
+  medio hacer de `develop`.
+
+Trunk-based encaja mejor con integración continua muy madura y despliegues
+diarios; GitHub Flow es ideal para entrega continua pura. Para un flujo con
+releases planificadas y revisión formal por PR, GitFlow equilibra mejor control,
+trazabilidad y colaboración.
 
 ### Ramas de larga vida
 
@@ -165,7 +188,43 @@ entra por Pull Request para que la acción de CI lo valide y un compañero lo re
 
 ---
 
-## 8. Resumen del ciclo de vida de un cambio
+## 8. Integración y despliegue continuo (CI/CD)
+
+La automatización vive en `.github/workflows/` y se apoya en **GitHub Actions**.
+
+### Integración continua (CI)
+
+`ci.yml` es la puerta de calidad. Se ejecuta automáticamente en:
+
+- **cada push a `develop`** → valida la integración de cada feature;
+- **cada pull request hacia `main`** → valida el candidato a release antes de
+  que llegue a producción.
+
+Compila el backend (`mvn clean package`) y el frontend (`npm run build`). Si
+alguno falla, la Action queda en rojo y el cambio no debe integrarse. Así ningún
+código roto entra a `develop` ni a `main`, sin intervención manual. Los
+workflows `backend-build.yml` y `frontend-build.yml` refuerzan esa validación
+por componente.
+
+### Despliegue continuo (CD)
+
+Los workflows `backend-deploy.yml` y `frontend-deploy.yml` publican el backend
+en ECS y el frontend en Amplify. Se disparan de forma manual (`workflow_dispatch`)
+y requieren las credenciales de AWS como secrets del repositorio.
+
+### Rol dentro del proceso CI/CD
+
+- **CI** (build automático en cada push/PR): detecta errores temprano y mantiene
+  las ramas principales siempre compilables.
+- **CD** (deploy a AWS): lleva lo ya validado al entorno cloud.
+
+En conjunto, la automatización convierte el repositorio en el disparador del
+flujo DevOps: un cambio integrado por PR se valida solo y, una vez aprobado,
+puede desplegarse de forma reproducible.
+
+---
+
+## 9. Resumen del ciclo de vida de un cambio
 
 1. Se crea `feature/*` desde `develop`.
 2. Se trabaja con commits `feat:` / `fix:` pequeños y claros.
