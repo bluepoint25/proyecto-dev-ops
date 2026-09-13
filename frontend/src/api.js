@@ -1,6 +1,7 @@
 import { getAccessToken } from './auth.js'
 
-const API_URL = import.meta.env.VITE_API_URL
+// Quitamos un posible "/" final para evitar rutas con doble barra (//productos)
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
 
 async function llamar(descripcion, promesa) {
   try {
