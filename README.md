@@ -161,6 +161,26 @@ Workflows de GitHub Actions en `.github/workflows/`:
 | `frontend-deploy.yml` | manual                              | build + publicar en Amplify               |
 | `backend-build.yml`   | push a `backend/**`, PR a `main`    | `mvn clean package`                       |
 | `backend-deploy.yml`  | manual                              | build imagen + push ECR + redeploy ECS    |
+| `cicd-backend.yml`    | push a `main`/`develop`, PR a `main` | **Pipeline completo (EP2)**: test + Jacoco → SonarCloud → imagen Docker → Trivy → deploy en staging con Docker Compose |
+
+### Pipeline CI/CD del backend (Evaluación Parcial 2)
+
+```
+test (JUnit + Jacoco) → sonar (quality gate) → build-image → scan-image (Trivy) → deploy-staging (Compose)
+```
+
+Cada etapa bloquea a la siguiente si falla. Detalle completo, trazabilidad, configuración
+de secrets y orquestación en [`docs/PIPELINE.md`](docs/PIPELINE.md).
+
+Ejecutar el entorno simulado en local:
+
+```bash
+docker compose up --build
+curl http://localhost:8080/info
+```
+
+Orquestación con Kubernetes (Deployment, HPA, PDB): carpeta [`k8s/`](k8s/).
+Dependabot revisa dependencias semanalmente (`.github/dependabot.yml`).
 
 Los pipelines de despliegue requieren los secrets `AWS_ACCESS_KEY_ID`,
 `AWS_SECRET_ACCESS_KEY` y `AWS_SESSION_TOKEN` en el repositorio.

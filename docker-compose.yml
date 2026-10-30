@@ -1,0 +1,56 @@
+# Entorno simulado (staging) del microservicio: backend + PostgreSQL.
+# Uso local:      docker compose up --build
+# Uso en pipeline: BACKEND_IMAGE=<imagen construida por el job> docker compose up -d --wait
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pedidos360
+      POSTGRES_USER: pedidos
+      # Valor de ejemplo solo para el entorno simulado; en reales va en un secreto
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pedidos_local}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pedidos -d pedidos360"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [backend-net]
+
+  backend:
+    image: ${BACKEND_IMAGE:-pedidos360-backend:local}
+    build:
+      context: ./backend
+      args:
+        GIT_SHA: ${GIT_SHA:-local}
+        APP_VERSION: ${APP_VERSION:-dev}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/pedidos360
+      SPRING_DATASOURCE_USERNAME: pedidos
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-pedidos_local}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 40s
+    # Limites de recursos (escalabilidad/gobernanza)
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+    restart: unless-stopped
+    networks: [backend-net]
+
+volumes:
+  pgdata:
+
+networks:
+  backend-net:

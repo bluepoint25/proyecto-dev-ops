@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pedidos360
+---
+# Secreto de ejemplo para el entorno simulado. En un entorno real se crea fuera
+# del repositorio (kubectl create secret / Sealed Secrets / AWS Secrets Manager).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+  namespace: pedidos360
+type: Opaque
+stringData:
+  username: pedidos
+  password: pedidos_local
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: pedidos360
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0   # actualizacion sin caida de servicio
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001   # mismo UID que el usuario "app" del Dockerfile
+        seccompProfile:
+          type: RuntimeDefault
+      automountServiceAccountToken: false
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: backend
+          # Para desplegar una version trazable: kubectl -n pedidos360 set image deployment/backend backend=ghcr.io/bluepoint25/pedidos360-backend:<SHA>
+          image: ghcr.io/bluepoint25/pedidos360-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://db:5432/pedidos360
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef: { name: db-credentials, key: username }
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: db-credentials, key: password }
+          resources:
+            requests: { cpu: 250m, memory: 384Mi }
+            limits:   { cpu: "1",  memory: 768Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: 8080 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            initialDelaySeconds: 40
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: pedidos360
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+# Escalado automatico segun uso de CPU (parametro de escalabilidad)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend
+  namespace: pedidos360
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+# Garantiza al menos 1 pod disponible durante mantenciones del nodo
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: backend
+  namespace: pedidos360
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: backend
