@@ -156,10 +156,9 @@ Workflows de GitHub Actions en `.github/workflows/`:
 
 | Pipeline              | Disparador                          | Qué hace                                  |
 |-----------------------|-------------------------------------|-------------------------------------------|
-| `ci.yml`              | push a `develop`, PR a `main`       | Compila backend y frontend                |
+| `ci.yml`              | push a `develop`, PR a `main`       | Compila el frontend                       |
 | `frontend-build.yml`  | push a `frontend/**`, PR a `main`   | `npm install` + `npm run build`           |
 | `frontend-deploy.yml` | manual                              | build + publicar en Amplify               |
-| `backend-build.yml`   | push a `backend/**`, PR a `main`    | `mvn clean package`                       |
 | `backend-deploy.yml`  | manual                              | build imagen + push ECR + redeploy ECS    |
 | `cicd-backend.yml`    | push a `main`/`develop`, PR a `main` | **Pipeline completo (EP2)**: test + Jacoco → SonarCloud → imagen Docker → Trivy → deploy en staging con Docker Compose |
 

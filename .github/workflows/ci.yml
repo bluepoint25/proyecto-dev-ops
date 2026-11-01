@@ -1,6 +1,6 @@
 name: CI - Integración Continua
 
-# Integración continua: compila backend y frontend en cada push a develop y en
+# Integración continua: compila el frontend en cada push a develop y en
 # cada pull request hacia main, de modo que ningún cambio roto llegue a esas ramas.
 on:
   push:
@@ -10,26 +10,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  validar-backend:
-    name: Compilar backend (Spring Boot)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - name: Checkout del código
-        uses: actions/checkout@v4
-
-      - name: Configurar Java 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-
-      - name: Compilar y ejecutar pruebas
-        run: mvn --batch-mode clean package
-
   validar-frontend:
     name: Compilar frontend (React + Vite)
     runs-on: ubuntu-latest
@@ -54,7 +34,7 @@ jobs:
   resumen:
     name: Quality gate superado
     runs-on: ubuntu-latest
-    needs: [validar-backend, validar-frontend]
+    needs: [validar-frontend]
     steps:
       - name: Confirmar integración válida
-        run: echo "Backend y frontend compilan. El cambio puede integrarse."
+        run: echo "El frontend compila (el backend lo valida cicd-backend.yml). El cambio puede integrarse."
