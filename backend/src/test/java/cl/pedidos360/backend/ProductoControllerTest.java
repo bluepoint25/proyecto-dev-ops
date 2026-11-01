@@ -74,6 +74,24 @@ class ProductoControllerTest {
     }
 
     @Test
+    void crearConPrecioNegativoRetorna400() throws Exception {
+        mvc.perform(post("/productos")
+                .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_productos/write")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nombre\":\"Teclado\",\"precio\":-1,\"stock\":4}"))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void crearSinNombreRetorna400() throws Exception {
+        mvc.perform(post("/productos")
+                .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_productos/write")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nombre\":\"  \",\"precio\":100,\"stock\":4}"))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void crearConScopeWriteRetorna201() throws Exception {
         when(repo.save(any(Producto.class))).thenAnswer(inv -> inv.getArgument(0));
 

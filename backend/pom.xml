@@ -20,8 +20,10 @@
     <properties>
         <java.version>21</java.version>
         <jacoco.version>0.8.12</jacoco.version>
+        <!-- Testcontainers >= 1.21.4 soporta Docker Engine 29 (API minima 1.44) -->
+        <testcontainers.version>1.21.4</testcontainers.version>
         <!-- Politica de calidad: el build falla si la cobertura de lineas baja de este minimo -->
-        <coverage.minimum>0.60</coverage.minimum>
+        <coverage.minimum>0.80</coverage.minimum>
         <!-- SonarCloud (la clave y organizacion se pueden sobreescribir desde el pipeline) -->
         <sonar.projectKey>bluepoint25_proyecto-dev-ops</sonar.projectKey>
         <sonar.organization>bluepoint25</sonar.organization>
@@ -70,6 +72,29 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- Validacion de entrada (@Valid) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Tests de integracion contra PostgreSQL real -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <!-- Tests -->

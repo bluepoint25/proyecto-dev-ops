@@ -178,7 +178,18 @@ docker compose up --build
 curl http://localhost:8080/info
 ```
 
-Orquestación con Kubernetes (Deployment, HPA, PDB): carpeta [`k8s/`](k8s/).
+**Calidad:** el build falla si una prueba falla o la cobertura de líneas (Jacoco) baja de
+80 %; SonarCloud aplica su quality gate y la validación de entrada se prueba con casos inválidos.
+
+**Seguridad:** gitleaks (secretos), Trivy (imágenes, bloquea HIGH/CRITICAL), `dependency-review`
+y Dependabot (dependencias), contenedores sin root y acciones fijadas por SHA.
+
+**Trazabilidad:** commit → run de Actions → imagen `pedidos360-*:<SHA>` con la etiqueta OCI
+`revision` → `GET /info` (muestra el `commit` en ejecución) → GitHub Release `v<run>` creado en
+`main`. El job de despliegue verifica que el commit de las imágenes y del servicio coincidan.
+
+**Orquestación:** Docker Compose (staging simulado) y Kubernetes (`k8s/`: Deployments, Ingress, HPA,
+PDB, PostgreSQL), probado en cada run con un cluster kind efímero.
 Dependabot revisa dependencias semanalmente (`.github/dependabot.yml`).
 
 Los pipelines de despliegue requieren los secrets `AWS_ACCESS_KEY_ID`,

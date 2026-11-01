@@ -35,7 +35,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -46,6 +46,31 @@ services:
         limits:
           cpus: "1.0"
           memory: 768M
+    restart: unless-stopped
+    networks: [backend-net]
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-pedidos360-frontend:local}
+    build:
+      context: ./frontend
+      args:
+        GIT_SHA: ${GIT_SHA:-local}
+        VITE_API_URL: http://localhost:8080
+    ports:
+      - "5173:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
     restart: unless-stopped
     networks: [backend-net]
 

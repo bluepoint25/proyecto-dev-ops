@@ -25,6 +25,13 @@ updates:
       interval: weekly
     labels: [dependencies, docker]
 
+  - package-ecosystem: docker
+    directory: /frontend
+    target-branch: develop
+    schedule:
+      interval: weekly
+    labels: [dependencies, docker]
+
   - package-ecosystem: github-actions
     directory: /
     target-branch: develop

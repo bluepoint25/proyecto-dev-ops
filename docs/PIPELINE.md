@@ -14,26 +14,32 @@ Workflow: [`.github/workflows/cicd-backend.yml`](../.github/workflows/cicd-backe
  │ Jacoco │   │  gate   │   │ tag = SHA   │   │ HIGH/CRIT  │   │ + smoke tests  │
  └────────┘   └─────────┘   └─────────────┘   └────────────┘   │ + push a GHCR  │
       │                                                         └────────────────┘
-      └──► validar-k8s (kubeconform sobre k8s/)
+      ├──► secretos (gitleaks): puerta adicional antes de build-image
+      └──► validar-k8s (kubeconform) ──┐
+                                        ├──► deploy-staging ──► release-produccion (main + aprobación)
+ build-image ──► scan-image ──► k8s-kind ┘     (Compose + smoke)   (GHCR v<run>/SHA + GitHub Release)
 ```
 
 Cada etapa usa `needs`, por lo que **una falla bloquea todo lo posterior**.
 
 | Etapa | Qué hace | Cuándo bloquea | Indicador |
 |-------|----------|----------------|-----------|
-| `test` | `mvn verify`: 10 pruebas (JUnit 5 + MockMvc + Spring Security Test) y reporte Jacoco | Una prueba falla o la cobertura de líneas es < 60 % (`coverage.minimum` en `pom.xml`) | IE2 |
+| `test` | `mvn verify`: 13 pruebas (JUnit 5, MockMvc, Spring Security Test y Testcontainers con PostgreSQL real) y reporte Jacoco | Una prueba falla o la cobertura de líneas es < 80 % (`coverage.minimum` en `pom.xml`) | IE2 |
 | `dependency-review` | En PRs revisa las dependencias nuevas/cambiadas (requiere *Dependency graph* activo en el repo) | Una dependencia nueva tiene vulnerabilidad HIGH o superior | IE3 |
 | `sonar` | Análisis estático en SonarCloud con `sonar.qualitygate.wait=true` | El quality gate falla o falta `SONAR_TOKEN` | IE3 |
-| `build-image` | Construye el `Dockerfile` multi-stage; etiqueta la imagen con el SHA del commit | El build falla | IE1 |
-| `scan-image` | Trivy escanea la imagen | Hay vulnerabilidades HIGH/CRITICAL con corrección disponible | IE3 |
-| `deploy-staging` | `docker compose up --wait` con la imagen construida, smoke tests y verificación del commit; desde `main` publica la imagen en GHCR | Compose no queda saludable, un smoke test falla o el commit de la imagen no coincide | IE4 |
-| `validar-k8s` | Valida con kubeconform los manifiestos de `k8s/` (solo esquema; no despliega en un cluster) | Un manifiesto no cumple el esquema y bloquea `deploy-staging` | IE5 |
+| `secretos` | gitleaks revisa todo el historial buscando credenciales | Encuentra una credencial | IE3 |
+| `build-image` | Construye las imágenes de backend y frontend (multi-stage); las etiqueta con el SHA del commit | El build falla | IE1 |
+| `scan-image` | Trivy escanea ambas imágenes | Hay vulnerabilidades HIGH/CRITICAL con corrección disponible | IE3 |
+| `deploy-staging` | `docker compose up --wait` (db + backend + frontend) con las imágenes construidas, smoke tests y verificación del commit | Compose no queda saludable, un smoke test falla o el commit no coincide | IE4 |
+| `release-produccion` | Solo en `main`, con aprobación del entorno `production`: publica imágenes en GHCR (`<SHA>`, `v<run>`, `latest`) y crea un GitHub Release con el commit | Falla el login/push o el revisor rechaza | IE4 |
+| `validar-k8s` | kubeconform valida el esquema de `k8s/` | Un manifiesto es inválido (bloquea `deploy-staging`) | IE5 |
+| `k8s-kind` | Crea un cluster Kubernetes efímero (kind), despliega Postgres + backend + frontend, espera `rollout status` y verifica `/info` y el commit | Un pod no queda listo o el smoke test falla (bloquea `deploy-staging`) | IE5 |
 
 Además **Dependabot** (`.github/dependabot.yml`) revisa semanalmente Maven, npm, Docker y GitHub Actions y abre PRs hacia `develop`.
 
 ## Contenedores (IE1)
 
-`backend/Dockerfile` es multi-stage: compila con `maven:3.9-eclipse-temurin-21` y ejecuta con `eclipse-temurin:21-jre`. Incluye:
+`backend/Dockerfile` y `frontend/Dockerfile` (nginx sin privilegios) son multi-stage. El del backend: compila con `maven:3.9-eclipse-temurin-21` y ejecuta con `eclipse-temurin:21-jre`. Incluye:
 
 - Usuario no root (`USER app`).
 - `HEALTHCHECK` sobre `/actuator/health`.
@@ -45,17 +51,20 @@ Además **Dependabot** (`.github/dependabot.yml`) revisa semanalmente Maven, npm
 - Quality gate de Sonar y Trivy bloquean el avance (no solo alertan).
 - Permisos mínimos del `GITHUB_TOKEN` (`contents: read`; `packages: write` solo donde se publica).
 - Los PR de Dependabot/forks no reciben secretos: ahí Sonar se omite y el control lo dan `dependency-review` y Trivy.
-- Pendiente recomendado: fijar las `uses:` de terceros (p. ej. `trivy-action`) por SHA de commit.
+- Todas las `uses:` de terceros están fijadas por SHA de commit.
+- gitleaks bloquea credenciales en el historial; el Secret de Kubernetes se crea fuera del repositorio.
 - Contenedor sin privilegios (UID 10001); en Kubernetes `runAsNonRoot`, `allowPrivilegeEscalation: false` y `capabilities.drop: ALL`.
 - Escalabilidad: límites de CPU/memoria en Compose y Kubernetes, `HorizontalPodAutoscaler` (2–5 réplicas al 70 % de CPU; requiere metrics-server en el cluster), `RollingUpdate` sin caída y `PodDisruptionBudget`.
 
 ## Orquestación (IE5)
 
 - **Docker Compose** (`docker-compose.yml`): backend + PostgreSQL con healthchecks, `depends_on: service_healthy`, red dedicada, volumen y límites de recursos. Es el entorno que despliega el pipeline.
-- **Kubernetes** (`k8s/`): Deployment, Service, HPA, PDB, Secret y StatefulSet de PostgreSQL. Para probar localmente (minikube/kind/Docker Desktop):
+- **Kubernetes** (`k8s/`): Deployments de backend y frontend, Services, Ingress, HPA, PDB y StatefulSet de PostgreSQL. El Secret `db-credentials` no se versiona. El job `k8s-kind` lo prueba en cada run. Para probar localmente (minikube/kind/Docker Desktop):
 
 ```bash
-kubectl apply -f k8s/postgres.yaml -f k8s/backend.yaml
+kubectl create namespace pedidos360
+kubectl -n pedidos360 create secret generic db-credentials --from-literal=username=pedidos --from-literal=password=<clave>
+kubectl apply -f k8s/postgres.yaml -f k8s/backend.yaml -f k8s/frontend.yaml
 kubectl -n pedidos360 get pods,hpa
 ```
 
@@ -81,7 +90,19 @@ Se puede seguir un cambio de punta a punta:
 2. En GitHub: *Settings → Secrets and variables → Actions → New repository secret* → `SONAR_TOKEN`.
 3. (Opcional) secret `STAGING_DB_PASSWORD`; sin él se usa un valor de ejemplo solo válido en el runner efímero.
 4. *Settings → Actions → General → Workflow permissions*: permitir lectura y escritura para publicar en GHCR.
-5. *Settings → Branches*: regla de protección en `main` con los checks anteriores.
+5. *Settings → Branches*: regla de protección en `main` que exija los checks `Pruebas unitarias y cobertura`, `Analisis de codigo (SonarCloud)`, `Escaneo de secretos (gitleaks)`, `Escaneo de seguridad (Trivy)` y `Probar en Kubernetes (kind)`.
+6. *Settings → Environments*: crear `staging` y `production`; en `production` agregar *Required reviewers* (aprobación manual antes del release).
+
+## Evidencias para la entrega
+
+Capturas recomendadas (guardarlas en `docs/evidencias/` y enlazarlas aquí):
+
+1. Run completo en verde de *CI/CD - Backend* (pestaña Actions), con todos los jobs.
+2. Un run **bloqueado** (por ejemplo, subir `coverage.minimum` a 99 % o introducir un test que falle) mostrando que `build-image` y `deploy-staging` no se ejecutan.
+3. Panel de SonarCloud con el quality gate en *Passed*.
+4. Resumen del job `deploy-staging` (commit, rama, imágenes) y el *GitHub Release* creado.
+5. Salida del job `k8s-kind` (`kubectl get pods,svc,hpa`).
+6. Regla de protección de `main` y la aprobación del entorno `production`.
 
 ## Uso de Inteligencia Artificial
 

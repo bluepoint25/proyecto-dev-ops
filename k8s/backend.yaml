@@ -3,17 +3,8 @@ kind: Namespace
 metadata:
   name: pedidos360
 ---
-# Secreto de ejemplo para el entorno simulado. En un entorno real se crea fuera
-# del repositorio (kubectl create secret / Sealed Secrets / AWS Secrets Manager).
-apiVersion: v1
-kind: Secret
-metadata:
-  name: db-credentials
-  namespace: pedidos360
-type: Opaque
-stringData:
-  username: pedidos
-  password: pedidos_local
+# El Secret db-credentials NO se versiona: se crea fuera del repositorio con
+#   kubectl -n pedidos360 create secret generic db-credentials \n#     --from-literal=username=pedidos --from-literal=password=<clave>
 ---
 apiVersion: apps/v1
 kind: Deployment
