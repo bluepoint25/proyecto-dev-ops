@@ -12,7 +12,11 @@ ARG VITE_REDIRECT_URI="http://localhost:5173"
 RUN npm run build
 
 # ─── Etapa 2: nginx sin privilegios sirviendo los estaticos ───────────────────
-FROM nginxinc/nginx-unprivileged:1.27-alpine
+FROM nginxinc/nginx-unprivileged:stable-alpine
+# Parchea los paquetes del sistema base (Trivy bloquea vulnerabilidades HIGH/CRITICAL corregibles)
+USER root
+RUN apk upgrade --no-cache
+USER 101
 ARG GIT_SHA=local
 LABEL org.opencontainers.image.title="pedidos360-frontend" \
       org.opencontainers.image.source="https://github.com/bluepoint25/proyecto-dev-ops" \

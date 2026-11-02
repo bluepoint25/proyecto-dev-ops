@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.4</version>
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -20,8 +20,6 @@
     <properties>
         <java.version>21</java.version>
         <jacoco.version>0.8.12</jacoco.version>
-        <!-- Testcontainers >= 1.21.4 soporta Docker Engine 29 (API minima 1.44) -->
-        <testcontainers.version>1.21.4</testcontainers.version>
         <!-- Politica de calidad: el build falla si la cobertura de lineas baja de este minimo -->
         <coverage.minimum>0.80</coverage.minimum>
         <!-- SonarQube Community (el pipeline lo levanta como contenedor efimero) -->
