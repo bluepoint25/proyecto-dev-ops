@@ -27,7 +27,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsSource()))
             .authorizeHttpRequests(auth -> auth
                 // El health check de ECS y el endpoint de metadatos son públicos
-                .requestMatchers("/actuator/health", "/info").permitAll()
+                .requestMatchers("/actuator/health/**", "/info").permitAll()
                 // Todo lo demás requiere autenticación (token JWT válido)
                 .anyRequest().authenticated()
             )

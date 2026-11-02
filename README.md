@@ -156,11 +156,42 @@ Workflows de GitHub Actions en `.github/workflows/`:
 
 | Pipeline              | Disparador                          | Qué hace                                  |
 |-----------------------|-------------------------------------|-------------------------------------------|
-| `ci.yml`              | push a `develop`, PR a `main`       | Compila backend y frontend                |
+| `ci.yml`              | push a `develop`, PR a `main`       | Compila el frontend                       |
 | `frontend-build.yml`  | push a `frontend/**`, PR a `main`   | `npm install` + `npm run build`           |
 | `frontend-deploy.yml` | manual                              | build + publicar en Amplify               |
-| `backend-build.yml`   | push a `backend/**`, PR a `main`    | `mvn clean package`                       |
 | `backend-deploy.yml`  | manual                              | build imagen + push ECR + redeploy ECS    |
+| `cicd-backend.yml`    | push a `main`/`develop`, PR a `main` | **Pipeline completo (EP2)**: test + Jacoco → SonarQube → imagen Docker → Trivy → deploy en staging con Docker Compose |
+
+### Pipeline CI/CD del backend (Evaluación Parcial 2)
+
+```
+test (JUnit + Jacoco) → sonar (quality gate) → build-image → scan-image (Trivy) → deploy-staging (Compose)
+```
+
+Cada etapa bloquea a la siguiente si falla. Detalle completo, trazabilidad, configuración
+de secrets y orquestación en [`docs/PIPELINE.md`](docs/PIPELINE.md).
+
+Ejecutar el entorno simulado en local:
+
+```bash
+cp .env.example .env      # y cambiar DB_PASSWORD
+docker compose up --build
+curl http://localhost:8080/info
+```
+
+**Calidad:** el build falla si una prueba falla o la cobertura de líneas (Jacoco) baja de
+80 %; SonarQube aplica su quality gate y la validación de entrada se prueba con casos inválidos.
+
+**Seguridad:** gitleaks (secretos), Trivy (imágenes, bloquea HIGH/CRITICAL), `dependency-review`
+y Dependabot (dependencias), contenedores sin root y acciones fijadas por SHA.
+
+**Trazabilidad:** commit → run de Actions → imagen `pedidos360-*:<SHA>` con la etiqueta OCI
+`revision` → `GET /info` (muestra el `commit` en ejecución) → GitHub Release `v<run>` creado en
+`main`. El job de despliegue verifica que el commit de las imágenes y del servicio coincidan.
+
+**Orquestación:** Docker Compose (staging simulado) y Kubernetes (`k8s/`: Deployments, Ingress, HPA,
+PDB, PostgreSQL), probado en cada run con un cluster kind efímero.
+Dependabot revisa dependencias semanalmente (`.github/dependabot.yml`).
 
 Los pipelines de despliegue requieren los secrets `AWS_ACCESS_KEY_ID`,
 `AWS_SECRET_ACCESS_KEY` y `AWS_SESSION_TOKEN` en el repositorio.

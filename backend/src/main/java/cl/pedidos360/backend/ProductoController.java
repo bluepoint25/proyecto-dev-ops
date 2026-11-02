@@ -1,5 +1,6 @@
 package cl.pedidos360.backend;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,7 +39,7 @@ public class ProductoController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_productos/write')")
-    public Producto crear(@RequestBody Producto producto) {
+    public Producto crear(@Valid @RequestBody Producto producto) {
         return repo.save(producto);
     }
 }

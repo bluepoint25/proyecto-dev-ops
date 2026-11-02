@@ -1,0 +1,9 @@
+# Excepciones documentadas de seguridad (Trivy).
+# spring-webmvc 6.2.19 es la ultima version de la rama 6.2; el arreglo solo existe en
+# Spring Framework 7.0.9 (requiere migrar a Spring Boot 4). Revisar al migrar.
+
+# XsltView: este servicio solo expone una API REST JSON; no usa vistas XSLT.
+CVE-2026-47884
+
+# Server-Sent Events con vistas: este servicio no usa SSE ni vistas.
+CVE-2026-47890
