@@ -1,7 +1,7 @@
 name: CI/CD - Backend
 
 # Pipeline completo del microservicio:
-#   test -> sonar (quality gate) -> build-image -> scan-image -> deploy-staging
+#   test -> sonar (SonarQube, quality gate) -> build-image -> scan-image -> deploy-staging
 # Cada etapa depende de la anterior: si una falla, el cambio queda bloqueado.
 on:
   push:
@@ -55,17 +55,11 @@ jobs:
           echo "### Pruebas unitarias" >> "$GITHUB_STEP_SUMMARY"
           grep -h -o 'tests="[0-9]*" errors="[0-9]*" skipped="[0-9]*" failures="[0-9]*"' target/surefire-reports/*.xml >> "$GITHUB_STEP_SUMMARY" || true
 
-  # ── 2. Analisis estatico SonarCloud. El quality gate BLOQUEA el pipeline ──
+  # ── 2. Analisis estatico con SonarQube Community (contenedor efimero, gratis). El quality gate BLOQUEA ──
   sonar:
-    name: Analisis de codigo (SonarCloud)
+    name: Analisis de codigo (SonarQube)
     runs-on: ubuntu-latest
     needs: test
-    # Los PR de forks y de Dependabot no reciben secretos; ahi el control de
-    # seguridad lo da dependency-review + Trivy
-    if: >-
-      github.actor != 'dependabot[bot]' &&
-      (github.event_name != 'pull_request' ||
-       github.event.pull_request.head.repo.full_name == github.repository)
     defaults:
       run:
         working-directory: backend
@@ -80,21 +74,56 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Verificar que existe el token de Sonar
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      # SonarQube Community corre como contenedor efimero dentro del runner:
+      # sin cuenta, sin costo y sin secretos. Las credenciales por defecto solo
+      # existen mientras vive este contenedor de CI.
+      - name: Levantar SonarQube Community
+        working-directory: .
         run: |
-          if [ -z "$SONAR_TOKEN" ]; then
-            echo "::error::Falta el secret SONAR_TOKEN. Crearlo en SonarCloud y agregarlo en Settings > Secrets (ver README)."
-            exit 1
-          fi
+          docker run -d --name sonarqube -p 9000:9000 \
+            -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true \
+            sonarqube:community
+          for i in $(seq 1 60); do
+            STATUS=$(curl -s http://localhost:9000/api/system/status | grep -o '"status":"[A-Z_]*"' || true)
+            echo "intento $i: $STATUS"
+            [ "$STATUS" = '"status":"UP"' ] && exit 0
+            sleep 5
+          done
+          docker logs sonarqube | tail -50
+          exit 1
 
-      - name: Analizar con SonarCloud y esperar el quality gate
+      - name: Generar token temporal
+        id: token
+        working-directory: .
+        run: |
+          TOKEN=$(curl -fsS -u admin:admin -X POST \
+            "http://localhost:9000/api/user_tokens/generate?name=ci-${GITHUB_RUN_ID}" \
+            | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Analizar y esperar el quality gate (bloquea si falla)
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           mvn --batch-mode verify org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.0.4389:sonar \
+            -Dsonar.host.url=http://localhost:9000 \
+            -Dsonar.token="$SONAR_TOKEN" \
             -Dsonar.qualitygate.wait=true
+
+      - name: Resumen del analisis
+        if: always()
+        working-directory: .
+        run: |
+          {
+            echo "### SonarQube"
+            curl -s -u admin:admin "http://localhost:9000/api/measures/component?component=bluepoint25_proyecto-dev-ops&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density"               | jq -r '.component.measures[]? | "- \(.metric): \(.value)"'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Bajar SonarQube
+        if: always()
+        working-directory: .
+        run: docker rm -f sonarqube
 
   # ── 2b. Escaneo de dependencias en PR: bloquea vulnerabilidades altas nuevas ──
   dependency-review:
@@ -129,12 +158,10 @@ jobs:
   build-image:
     name: Construir imagenes Docker
     runs-on: ubuntu-latest
-    # always() + checks: tambien corre cuando sonar se omite (PR de fork/Dependabot),
-    # pero nunca si test, sonar o secretos fallaron
     needs: [test, sonar, secretos]
     if: >-
       always() && needs.test.result == 'success' && needs.secretos.result == 'success' &&
-      (needs.sonar.result == 'success' || needs.sonar.result == 'skipped')
+      needs.sonar.result == 'success'
     permissions:
       contents: read
     outputs:

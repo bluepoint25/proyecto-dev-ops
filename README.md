@@ -160,7 +160,7 @@ Workflows de GitHub Actions en `.github/workflows/`:
 | `frontend-build.yml`  | push a `frontend/**`, PR a `main`   | `npm install` + `npm run build`           |
 | `frontend-deploy.yml` | manual                              | build + publicar en Amplify               |
 | `backend-deploy.yml`  | manual                              | build imagen + push ECR + redeploy ECS    |
-| `cicd-backend.yml`    | push a `main`/`develop`, PR a `main` | **Pipeline completo (EP2)**: test + Jacoco → SonarCloud → imagen Docker → Trivy → deploy en staging con Docker Compose |
+| `cicd-backend.yml`    | push a `main`/`develop`, PR a `main` | **Pipeline completo (EP2)**: test + Jacoco → SonarQube → imagen Docker → Trivy → deploy en staging con Docker Compose |
 
 ### Pipeline CI/CD del backend (Evaluación Parcial 2)
 
@@ -179,7 +179,7 @@ curl http://localhost:8080/info
 ```
 
 **Calidad:** el build falla si una prueba falla o la cobertura de líneas (Jacoco) baja de
-80 %; SonarCloud aplica su quality gate y la validación de entrada se prueba con casos inválidos.
+80 %; SonarQube aplica su quality gate y la validación de entrada se prueba con casos inválidos.
 
 **Seguridad:** gitleaks (secretos), Trivy (imágenes, bloquea HIGH/CRITICAL), `dependency-review`
 y Dependabot (dependencias), contenedores sin root y acciones fijadas por SHA.

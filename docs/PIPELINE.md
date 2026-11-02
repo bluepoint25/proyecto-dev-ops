@@ -26,7 +26,7 @@ Cada etapa usa `needs`, por lo que **una falla bloquea todo lo posterior**.
 |-------|----------|----------------|-----------|
 | `test` | `mvn verify`: 13 pruebas (JUnit 5, MockMvc, Spring Security Test y Testcontainers con PostgreSQL real) y reporte Jacoco | Una prueba falla o la cobertura de líneas es < 80 % (`coverage.minimum` en `pom.xml`) | IE2 |
 | `dependency-review` | En PRs revisa las dependencias nuevas/cambiadas (requiere *Dependency graph* activo en el repo) | Una dependencia nueva tiene vulnerabilidad HIGH o superior | IE3 |
-| `sonar` | Análisis estático en SonarCloud con `sonar.qualitygate.wait=true` | El quality gate falla o falta `SONAR_TOKEN` | IE3 |
+| `sonar` | Levanta SonarQube Community como contenedor efímero en el runner (sin cuenta, sin costo, sin secretos) y analiza con `sonar.qualitygate.wait=true` | El quality gate falla | IE3 |
 | `secretos` | gitleaks revisa todo el historial buscando credenciales | Encuentra una credencial | IE3 |
 | `build-image` | Construye las imágenes de backend y frontend (multi-stage); las etiqueta con el SHA del commit | El build falla | IE1 |
 | `scan-image` | Trivy escanea ambas imágenes | Hay vulnerabilidades HIGH/CRITICAL con corrección disponible | IE3 |
@@ -50,7 +50,7 @@ Además **Dependabot** (`.github/dependabot.yml`) revisa semanalmente Maven, npm
 
 - Quality gate de Sonar y Trivy bloquean el avance (no solo alertan).
 - Permisos mínimos del `GITHUB_TOKEN` (`contents: read`; `packages: write` solo donde se publica).
-- Los PR de Dependabot/forks no reciben secretos: ahí Sonar se omite y el control lo dan `dependency-review` y Trivy.
+- Sonar no necesita secretos, por lo que también corre en PRs de Dependabot y de forks.
 - Todas las `uses:` de terceros están fijadas por SHA de commit.
 - gitleaks bloquea credenciales en el historial; el Secret de Kubernetes se crea fuera del repositorio.
 - Contenedor sin privilegios (UID 10001); en Kubernetes `runAsNonRoot`, `allowPrivilegeEscalation: false` y `capabilities.drop: ALL`.
@@ -86,12 +86,11 @@ Se puede seguir un cambio de punta a punta:
 
 ## Configuración necesaria (una sola vez)
 
-1. En [SonarCloud](https://sonarcloud.io) importar el repositorio y generar un token. Ajustar `sonar.projectKey` y `sonar.organization` en `backend/pom.xml` si difieren. Desactivar *Automatic Analysis* (se usa el análisis desde CI).
-2. En GitHub: *Settings → Secrets and variables → Actions → New repository secret* → `SONAR_TOKEN`.
-3. (Opcional) secret `STAGING_DB_PASSWORD`; sin él se usa un valor de ejemplo solo válido en el runner efímero.
-4. *Settings → Actions → General → Workflow permissions*: permitir lectura y escritura para publicar en GHCR.
-5. *Settings → Branches*: regla de protección en `main` que exija los checks `Pruebas unitarias y cobertura`, `Analisis de codigo (SonarCloud)`, `Escaneo de secretos (gitleaks)`, `Escaneo de seguridad (Trivy)` y `Probar en Kubernetes (kind)`.
-6. *Settings → Environments*: crear `staging` y `production`; en `production` agregar *Required reviewers* (aprobación manual antes del release).
+1. No se requiere cuenta ni token de Sonar: el pipeline levanta su propio SonarQube. (Alternativa: si prefieren SonarCloud, que es gratis para repos públicos, reemplazar el job `sonar`.)
+2. (Opcional) secret `STAGING_DB_PASSWORD`; sin él se usa un valor de ejemplo solo válido en el runner efímero.
+3. *Settings → Actions → General → Workflow permissions*: permitir lectura y escritura para publicar en GHCR.
+4. *Settings → Branches*: regla de protección en `main` que exija los checks `Pruebas unitarias y cobertura`, `Analisis de codigo (SonarQube)`, `Escaneo de secretos (gitleaks)`, `Escaneo de seguridad (Trivy)` y `Probar en Kubernetes (kind)`.
+5. *Settings → Environments*: crear `staging` y `production`; en `production` agregar *Required reviewers* (aprobación manual antes del release).
 
 ## Evidencias para la entrega
 
@@ -99,7 +98,7 @@ Capturas recomendadas (guardarlas en `docs/evidencias/` y enlazarlas aquí):
 
 1. Run completo en verde de *CI/CD - Backend* (pestaña Actions), con todos los jobs.
 2. Un run **bloqueado** (por ejemplo, subir `coverage.minimum` a 99 % o introducir un test que falle) mostrando que `build-image` y `deploy-staging` no se ejecutan.
-3. Panel de SonarCloud con el quality gate en *Passed*.
+3. Resumen del job `sonar` (bugs, vulnerabilidades, cobertura) y el quality gate en *Passed*.
 4. Resumen del job `deploy-staging` (commit, rama, imágenes) y el *GitHub Release* creado.
 5. Salida del job `k8s-kind` (`kubectl get pods,svc,hpa`).
 6. Regla de protección de `main` y la aprobación del entorno `production`.

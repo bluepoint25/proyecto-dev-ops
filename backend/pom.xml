@@ -24,10 +24,9 @@
         <testcontainers.version>1.21.4</testcontainers.version>
         <!-- Politica de calidad: el build falla si la cobertura de lineas baja de este minimo -->
         <coverage.minimum>0.80</coverage.minimum>
-        <!-- SonarCloud (la clave y organizacion se pueden sobreescribir desde el pipeline) -->
+        <!-- SonarQube Community (el pipeline lo levanta como contenedor efimero) -->
         <sonar.projectKey>bluepoint25_proyecto-dev-ops</sonar.projectKey>
-        <sonar.organization>bluepoint25</sonar.organization>
-        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.host.url>http://localhost:9000</sonar.host.url>
         <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
