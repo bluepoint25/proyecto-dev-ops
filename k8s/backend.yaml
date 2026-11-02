@@ -37,6 +37,19 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
+      # Espera a que PostgreSQL acepte conexiones antes de arrancar Spring
+      initContainers:
+        - name: esperar-db
+          image: postgres:16-alpine
+          command: ["sh", "-c", "until pg_isready -h db -p 5432 -U pedidos -d pedidos360; do echo esperando db; sleep 2; done"]
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits:   { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
       containers:
         - name: backend
           # Para desplegar una version trazable: kubectl -n pedidos360 set image deployment/backend backend=ghcr.io/bluepoint25/pedidos360-backend:<SHA>
