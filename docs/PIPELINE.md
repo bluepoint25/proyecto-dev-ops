@@ -92,16 +92,6 @@ Se puede seguir un cambio de punta a punta:
 4. *Settings → Branches*: regla de protección en `main` que exija los checks `Pruebas unitarias y cobertura`, `Analisis de codigo (SonarQube)`, `Escaneo de secretos (gitleaks)`, `Escaneo de seguridad (Trivy)` y `Probar en Kubernetes (kind)`.
 5. *Settings → Environments*: crear `staging` y `production`; en `production` agregar *Required reviewers* (aprobación manual antes del release).
 
-## Evidencias para la entrega
-
-Capturas recomendadas (guardarlas en `docs/evidencias/` y enlazarlas aquí):
-
-1. Run completo en verde de *CI/CD - Backend* (pestaña Actions), con todos los jobs.
-2. Un run **bloqueado** (por ejemplo, subir `coverage.minimum` a 99 % o introducir un test que falle) mostrando que `build-image` y `deploy-staging` no se ejecutan.
-3. Resumen del job `sonar` (bugs, vulnerabilidades, cobertura) y el quality gate en *Passed*.
-4. Resumen del job `deploy-staging` (commit, rama, imágenes) y el *GitHub Release* creado.
-5. Salida del job `k8s-kind` (`kubectl get pods,svc,hpa`).
-6. Regla de protección de `main` y la aprobación del entorno `production`.
 
 ## Declaración de uso de Inteligencia Artificial
 
