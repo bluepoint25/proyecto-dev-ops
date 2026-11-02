@@ -1,0 +1,4 @@
+# Falsos positivos conocidos: credencial por defecto (publica) de la imagen sonarqube:community,
+# usada en un contenedor efimero de CI. Ya fue reemplazada por una clave aleatoria.
+31f020aeefb2ed65814724b170cb1719a4dd4512:.github/workflows/cicd-backend.yml:curl-auth-user:99
+31f020aeefb2ed65814724b170cb1719a4dd4512:.github/workflows/cicd-backend.yml:curl-auth-user:120
