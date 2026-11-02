@@ -174,6 +174,7 @@ de secrets y orquestación en [`docs/PIPELINE.md`](docs/PIPELINE.md).
 Ejecutar el entorno simulado en local:
 
 ```bash
+cp .env.example .env      # y cambiar DB_PASSWORD
 docker compose up --build
 curl http://localhost:8080/info
 ```

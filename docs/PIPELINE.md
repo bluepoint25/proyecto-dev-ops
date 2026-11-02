@@ -103,13 +103,27 @@ Capturas recomendadas (guardarlas en `docs/evidencias/` y enlazarlas aquí):
 5. Salida del job `k8s-kind` (`kubectl get pods,svc,hpa`).
 6. Regla de protección de `main` y la aprobación del entorno `production`.
 
-## Uso de Inteligencia Artificial
+## Declaración de uso de Inteligencia Artificial
 
-Declarar aquí (obligatorio según la pauta) qué herramientas de IA se usaron y para qué. Ejemplo de borrador: *Claude Code (Anthropic) se usó como apoyo para generar la estructura inicial del workflow, Dockerfile, manifiestos y pruebas; el equipo revisó, ejecutó y validó cada archivo.* **Edítenlo para que refleje lo que realmente hicieron.**
+**Herramienta utilizada:** Claude Code (Anthropic, modelo Claude Sonnet 5.5), agente de programación
+con plugins de revisión (Octopus).
 
-## Conclusiones y reflexiones individuales
+**Para qué se usó:**
+- Generar el borrador inicial del workflow de GitHub Actions (`cicd-backend.yml`), el Dockerfile
+  del backend y del frontend, `docker-compose.yml` y los manifiestos de Kubernetes (`k8s/`).
+- Redactar las pruebas unitarias y de integración del backend (JUnit, MockMvc, Testcontainers).
+- Revisión de seguridad y de código del pipeline con agentes de revisión, que detectaron
+  problemas como probes sin acceso público y una versión comprometida de `trivy-action`.
+- Redactar la documentación técnica (`docs/PIPELINE.md` y la sección de CI/CD del README).
 
-> La pauta prohíbe usar IA para redactar esta sección. Cada integrante debe escribir aquí, con sus propias palabras, qué aprendió y cuál fue su contribución.
+**Cómo se validó:**
+- Ejecuté las pruebas y la verificación de cobertura (`mvn verify`) en mi equipo.
+- Levanté el stack con Docker Compose y desplegué los manifiestos en un cluster kind local.
+- Probé SonarQube en mi Docker y revisé el resultado del quality gate.
+- Revisé cada archivo generado y los cambios fueron aceptados o corregidos por mí.
 
-- **Integrante 1:** _(pendiente)_
-- **Integrante 2:** _(pendiente)_
+**Lo que NO se hizo con IA:**
+- Las decisiones de arquitectura del microservicio original (EP1) son propias del equipo.
+
+**Referencia:** Anthropic. (2026). *Claude Code* [Herramienta de programación asistida por IA].
+https://claude.com/claude-code

@@ -7,8 +7,8 @@ services:
     environment:
       POSTGRES_DB: pedidos360
       POSTGRES_USER: pedidos
-      # Valor de ejemplo solo para el entorno simulado; en reales va en un secreto
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-pedidos_local}
+      # La clave no se versiona: se define en .env (local) o la genera el pipeline
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD (ver .env.example)}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -28,7 +28,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/pedidos360
       SPRING_DATASOURCE_USERNAME: pedidos
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-pedidos_local}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD (ver .env.example)}
     ports:
       - "8080:8080"
     depends_on:

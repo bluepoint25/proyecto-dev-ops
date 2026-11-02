@@ -92,11 +92,22 @@ jobs:
           docker logs sonarqube | tail -50
           exit 1
 
+      # Se reemplaza la clave inicial de la imagen por una aleatoria de un solo uso
+      - name: Asegurar el SonarQube efimero (clave aleatoria)
+        working-directory: .
+        env:
+          SONAR_INITIAL_PASSWORD: admin   # valor documentado por la imagen oficial
+        run: |
+          NEW="Zz9-$(openssl rand -hex 16)"   # cumple la politica de SonarQube (mayuscula, numero, simbolo)
+          echo "::add-mask::$NEW"
+          curl -fsS -u "admin:${SONAR_INITIAL_PASSWORD}" -X POST             "http://localhost:9000/api/users/change_password"             --data-urlencode "login=admin"             --data-urlencode "previousPassword=${SONAR_INITIAL_PASSWORD}"             --data-urlencode "password=${NEW}"
+          echo "SONAR_ADMIN_PASSWORD=${NEW}" >> "$GITHUB_ENV"
+
       - name: Generar token temporal
         id: token
         working-directory: .
         run: |
-          TOKEN=$(curl -fsS -u admin:admin -X POST \
+          TOKEN=$(curl -fsS -u "admin:${SONAR_ADMIN_PASSWORD}" -X POST \
             "http://localhost:9000/api/user_tokens/generate?name=ci-${GITHUB_RUN_ID}" \
             | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
           echo "::add-mask::$TOKEN"
@@ -117,7 +128,7 @@ jobs:
         run: |
           {
             echo "### SonarQube"
-            curl -s -u admin:admin "http://localhost:9000/api/measures/component?component=bluepoint25_proyecto-dev-ops&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density"               | jq -r '.component.measures[]? | "- \(.metric): \(.value)"'
+            curl -s -u "admin:${SONAR_ADMIN_PASSWORD}" "http://localhost:9000/api/measures/component?component=bluepoint25_proyecto-dev-ops&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density"               | jq -r '.component.measures[]? | "- \(.metric): \(.value)"'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Bajar SonarQube
@@ -259,7 +270,6 @@ jobs:
     permissions:
       contents: read
     env:
-      DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD || 'pedidos_ci' }}
       BACKEND_IMAGE: ${{ needs.build-image.outputs.image }}
       FRONTEND_IMAGE: ${{ needs.build-image.outputs.frontend }}
     steps:
@@ -273,7 +283,13 @@ jobs:
         run: gunzip -c imagen.tar.gz | docker load
 
       - name: Levantar el stack con Docker Compose y esperar a que este saludable
-        run: docker compose up -d --wait --wait-timeout 180
+        run: |
+          # Clave de la base de datos: secret si existe; si no, aleatoria (runner efimero)
+          DB_PASSWORD="${{ secrets.STAGING_DB_PASSWORD }}"
+          [ -n "$DB_PASSWORD" ] || DB_PASSWORD=$(openssl rand -hex 16)
+          echo "::add-mask::$DB_PASSWORD"
+          echo "DB_PASSWORD=$DB_PASSWORD" >> "$GITHUB_ENV"
+          DB_PASSWORD="$DB_PASSWORD" docker compose up -d --wait --wait-timeout 180
 
       - name: Smoke test - health, version desplegada y frontend
         run: |
