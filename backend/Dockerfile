@@ -7,7 +7,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # ─── Etapa 2: imagen final ligera ─────────────────────────────────────────────
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 COPY --from=build /app/target/backend-1.0.0.jar app.jar
 
